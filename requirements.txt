@@ -1,6 +1,7 @@
 # KODA Core — Dependencias Python
 # Instalar con: pip install -r requirements.txt
 # Requisito adicional del sistema: tesseract-ocr
+#   Windows: https://github.com/UB-Mannheim/tesseract/wiki
 #   macOS:   brew install tesseract tesseract-lang
 #   Ubuntu:  sudo apt install tesseract-ocr tesseract-ocr-spa
 
@@ -13,6 +14,7 @@ googlemaps>=4.10.0          # opcional, solo si se usa navegación Maps
 # Cámara y visión
 opencv-python>=4.9.0
 pytesseract>=0.3.10
+Pillow>=10.0.0
 
 # Audio
 pyaudio>=0.2.14
