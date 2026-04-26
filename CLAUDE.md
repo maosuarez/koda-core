@@ -20,10 +20,10 @@ Antes de ejecutar cualquier cosa:
 3. Pasarle solo el contexto necesario para esa tarea — no el proyecto completo
 
 Agentes disponibles relevantes para este proyecto:
-- `senior-implementer` — implementación de módulos (camera.py, gemini_client.py, tts_client.py, etc.)
-- `system-architect` — decisiones de threading, manejo de colas, latencia
-- `adversarial-code-reviewer` — revisar que el código corre antes de marcar como hecho
-- `performance-optimizer` — reducir latencia E2E cuando sea medible
+- `koda-senior-implementer` — implementación de módulos (camera.py, gemini_client.py, tts_client.py, etc.)
+- `koda-system-architect` — decisiones de threading, manejo de colas, latencia
+- `koda-code-reviewer` — revisar que el código corre antes de marcar como hecho
+- `koda-performance-optimizer` — reducir latencia E2E cuando sea medible
 
 ---
 
