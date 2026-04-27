@@ -11,12 +11,12 @@ except ImportError:
     pygame = None
 
 from modules.config import GEMINI_API_KEY  # fuerza validación al arrancar
-from modules.camera import CameraCapture
-from modules.audio import AudioPlayer
-from modules.gemini_client import get_conversation_response
-from modules.tts_client import synthesize_speech
-from modules.stt_client import SpeechToTextClient
-from modules.ocr import extract_text
+from modules.input.camera import CameraCapture
+from modules.output.audio import AudioPlayer
+from modules.output.gemini_client import get_conversation_response
+from modules.output.tts_client import synthesize_speech
+from modules.input.stt_client import SpeechToTextClient
+from modules.input.ocr import extract_text
 from modules.processing import Processor
 
 # Logging centralizado — nivel INFO por defecto

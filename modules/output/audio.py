@@ -60,7 +60,7 @@ class AudioPlayer:
 
     def _play_pygame(self, audio_bytes: bytes) -> None:
         buf = io.BytesIO(audio_bytes)
-        pygame.mixer.music.load(buf)
+        pygame.mixer.music.load(buf, 'audio.mp3')
         pygame.mixer.music.play()
         # Bloquear hasta que termine para evitar overlap
         while pygame.mixer.music.get_busy():

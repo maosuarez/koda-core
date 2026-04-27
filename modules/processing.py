@@ -2,8 +2,8 @@ import threading
 import queue
 import time
 import logging
-from modules.gemini_client import get_scene_description
-from modules.tts_client import synthesize_speech
+from modules.output.gemini_client import get_scene_description
+from modules.output.tts_client import synthesize_speech
 
 # Configurar logging según convenciones
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
