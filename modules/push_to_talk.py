@@ -13,7 +13,7 @@ import keyboard
 from google.cloud import speech_v2
 from google.cloud.speech_v2.types import cloud_speech
 from modules import config
-from modules.audio import AudioPlayer
+from modules.output.audio import AudioPlayer
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class PushToTalkClient:
             if is_pressed and not was_pressed:
                 # Flanco de bajada: pausar pipeline, interrumpir audio, pitido, empezar a grabar
                 self._ptt_active.set()
-                self._player.stop()
+                self._player.stop_current()
 
                 # Limpiar cola de audio pendiente para no reproducir descripciones viejas post-PTT
                 while not self._processor_output_queue.empty():

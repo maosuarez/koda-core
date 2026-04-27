@@ -10,11 +10,15 @@ try:
 except ImportError:
     pygame = None
 
+import cv2
+import numpy as np
+
 from modules.config import (
     GEMINI_API_KEY,
     AUDIO_INTERRUPTIONS_ENABLED,
     AUDIO_QUEUE_MAXSIZE,
     AUDIO_DROP_EXPIRED,
+    FRAME_SIMILARITY_THRESHOLD,
 )
 from modules.input.camera import CameraCapture
 from modules.output.audio import AudioPlayer
@@ -35,6 +39,24 @@ logger = logging.getLogger("Main")
 
 # Flag compartido para el shutdown limpio
 running = True
+
+
+def _is_similar_frame(frame_a: bytes, frame_b: bytes) -> bool:
+    """Retorna True si los dos frames son visualmente casi idénticos."""
+    try:
+        arr_a = np.frombuffer(frame_a, np.uint8)
+        arr_b = np.frombuffer(frame_b, np.uint8)
+        img_a = cv2.imdecode(arr_a, cv2.IMREAD_GRAYSCALE)
+        img_b = cv2.imdecode(arr_b, cv2.IMREAD_GRAYSCALE)
+        if img_a is None or img_b is None:
+            return False
+        img_a = cv2.resize(img_a, (64, 64))
+        img_b = cv2.resize(img_b, (64, 64))
+        diff = cv2.absdiff(img_a, img_b)
+        similarity = 1.0 - (diff.mean() / 255.0)
+        return similarity >= FRAME_SIMILARITY_THRESHOLD
+    except Exception:
+        return False
 
 
 def main():
@@ -209,6 +231,7 @@ def main():
     signal.signal(signal.SIGINT, shutdown_handler)
 
     # --- Loop principal a ~1 FPS: captura frame → OCR → cola del Processor ---
+    prev_frame: bytes | None = None
     while running:
         # Pausar captura mientras PTT está activo — no enviar frames ni descripciones
         if ptt_active.is_set():
@@ -216,6 +239,12 @@ def main():
             continue
         frame = camera.get_frame()
         if frame is not None:
+            # Descartar si la escena no cambió respecto al frame anterior
+            if prev_frame is not None and _is_similar_frame(prev_frame, frame):
+                logger.debug("Frame descartado — escena sin cambios significativos")
+                time.sleep(1.0)
+                continue
+            prev_frame = frame
             try:
                 ocr_text = extract_text(frame)
             except Exception as e:

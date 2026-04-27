@@ -40,6 +40,9 @@ AUDIO_INTERRUPTIONS_ENABLED = get_env_variable("AUDIO_INTERRUPTIONS_ENABLED", "t
 AUDIO_QUEUE_MAXSIZE = int(get_env_variable("AUDIO_QUEUE_MAXSIZE", "12"))
 AUDIO_DROP_EXPIRED = get_env_variable("AUDIO_DROP_EXPIRED", "true").lower() == "true"
 
+# Descarte de frames similares — 0.97 = descarta si el 97% de píxeles no cambió
+FRAME_SIMILARITY_THRESHOLD = float(get_env_variable("FRAME_SIMILARITY_THRESHOLD", "0.97"))
+
 # Validación de arranque — fallar rápido antes de conectar cualquier API
 if USE_VERTEX.lower() != "true" and not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY no está definida en .env — el sistema no puede arrancar")
