@@ -25,3 +25,6 @@ python-dotenv>=1.0.0
 
 # Deteccion de objetos (opcional, para alertas de peligro)
 ultralytics>=8.2.0
+
+# Push-to-Talk y control de teclado
+keyboard>=0.13.5
