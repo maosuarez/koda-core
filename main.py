@@ -18,6 +18,7 @@ from modules.tts_client import synthesize_speech
 from modules.stt_client import SpeechToTextClient
 from modules.ocr import extract_text
 from modules.processing import Processor
+from modules.navigation import NavigationClient
 
 # Logging centralizado — nivel INFO por defecto
 logging.basicConfig(
@@ -39,6 +40,7 @@ def main():
     camera = CameraCapture()
     player = AudioPlayer()
     processor = Processor()
+    nav = NavigationClient()
 
     # --- Hilo consumidor de audio (output_queue del Processor) ---
     def consume_output():
@@ -53,13 +55,16 @@ def main():
     threading.Thread(target=consume_output, daemon=True).start()
     logger.info("Hilo consumidor de audio iniciado")
 
-    # --- Callback STT: responde preguntas del usuario con contexto visual actual ---
+    # --- Callback STT: navegación o descripción de escena según el transcript ---
     def on_speech(transcript: str):
         logger.info(f"Pregunta del usuario: '{transcript}'")
-        # Leer last_description del Processor — contexto visual aproximado sin sincronización rígida
-        description = get_conversation_response(transcript, processor.last_description)
-        if description.strip():
-            audio = synthesize_speech(description)
+        if nav.is_navigation_query(transcript):
+            response = nav.navigate_to(transcript)
+        else:
+            # Leer last_description del Processor — contexto visual aproximado sin sincronización rígida
+            response = get_conversation_response(transcript, processor.last_description)
+        if response.strip():
+            audio = synthesize_speech(response)
             player.play(audio)
 
     # --- Iniciar subsistemas ---
