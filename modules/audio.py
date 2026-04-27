@@ -70,5 +70,12 @@ class AudioPlayer:
         # playsound no soporta BytesIO — si se llega aquí, la demo necesita pygame
         logger.error("playsound no soporta reproducción desde memoria; instalar pygame")
 
+    def stop(self) -> None:
+        if _BACKEND == "pygame" and pygame is not None:
+            pygame.mixer.music.stop()
+            with self._lock:
+                self._playing = False
+            logger.info("Reproducción interrumpida por PTT")
+
     def is_playing(self) -> bool:
         return self._playing

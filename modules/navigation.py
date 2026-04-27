@@ -58,6 +58,38 @@ _CAMPUS_LANDMARKS = {
 # Patrón para limpiar etiquetas HTML que devuelve la API de Maps
 _HTML_TAG = re.compile(r"<[^>]+>")
 
+# Pasos mock por destino para modo navegación continua
+_CAMPUS_STEPS = {
+    "bloque g": [
+        "Paso 1: Sal por la puerta principal y gira a la izquierda, 50 metros.",
+        "Paso 2: Continúa recto por el corredor techado, 100 metros.",
+        "Paso 3: El Bloque G es el edificio de vidrio a tu derecha. Has llegado.",
+    ],
+    "cafetería": [
+        "Paso 1: Sigue recto por el corredor principal, 80 metros.",
+        "Paso 2: En el patio central, gira a la derecha, 30 metros.",
+        "Paso 3: La cafetería está frente a ti. Has llegado.",
+    ],
+    "cafeteria": [
+        "Paso 1: Sigue recto por el corredor principal, 80 metros.",
+        "Paso 2: En el patio central, gira a la derecha, 30 metros.",
+        "Paso 3: La cafetería está frente a ti. Has llegado.",
+    ],
+    "biblioteca": [
+        "Paso 1: Camina hacia el corredor principal, 20 metros.",
+        "Paso 2: La Biblioteca Pablo VI está a tu derecha, 50 metros.",
+        "Paso 3: Entraste a la biblioteca. Has llegado.",
+    ],
+    "entrada principal": [
+        "Paso 1: Camina hacia el norte por el corredor central, 100 metros.",
+        "Paso 2: Continúa recto, 100 metros más.",
+        "Paso 3: La entrada principal está frente a ti. Has llegado.",
+    ],
+}
+
+_NEXT_KEYWORDS = ["siguiente", "listo", "ya", "ok", "continúa", "continua", "avanza", "próximo", "proximo", "sigue"]
+_CANCEL_KEYWORDS = ["cancelar", "cancela", "parar", "para la navegación", "detener", "salir", "stop"]
+
 
 class NavigationClient:
     def __init__(self):
@@ -132,3 +164,51 @@ class NavigationClient:
             if landmark != "default" and landmark in dest_lower:
                 return response
         return _CAMPUS_LANDMARKS["default"]
+
+    # ── navegación continua ─────────────────────────────────────────────────────
+
+    def start_navigation(self, destination: str) -> list:
+        """Retorna todos los pasos de navegación como lista. Nunca lanza excepción."""
+        if self._maps_client is not None:
+            return self._get_all_steps_real(destination)
+        return self._mock_steps(destination.lower())
+
+    def is_next_step_command(self, transcript: str) -> bool:
+        text = transcript.lower()
+        return any(kw in text for kw in _NEXT_KEYWORDS)
+
+    def is_cancel_command(self, transcript: str) -> bool:
+        text = transcript.lower()
+        return any(kw in text for kw in _CANCEL_KEYWORDS)
+
+    def _get_all_steps_real(self, destination: str) -> list:
+        try:
+            origin = self.get_current_location()
+            result = self._maps_client.directions(
+                origin=origin,
+                destination=destination,
+                mode="walking",
+                language="es",
+            )
+            if not result:
+                return self._mock_steps(destination.lower())
+            steps = result[0].get("legs", [{}])[0].get("steps", [])
+            parts = []
+            for i, step in enumerate(steps, 1):
+                raw = step.get("html_instructions", "")
+                clean = _HTML_TAG.sub("", raw).strip()
+                distance = step.get("distance", {}).get("text", "")
+                if distance:
+                    clean = f"{clean}, {distance}"
+                if clean:
+                    parts.append(f"Paso {i}: {clean}")
+            return parts if parts else self._mock_steps(destination.lower())
+        except Exception as e:
+            logger.warning(f"start_navigation: Maps API falló — usando mock: {e}")
+            return self._mock_steps(destination.lower())
+
+    def _mock_steps(self, dest_lower: str) -> list:
+        for landmark, steps in _CAMPUS_STEPS.items():
+            if landmark in dest_lower:
+                return list(steps)
+        return ["No tengo información de esa ubicación. Intenta preguntar a alguien cercano."]
