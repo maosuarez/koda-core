@@ -173,6 +173,11 @@ def main():
                 audio = synthesize_speech(response)
                 player.play(audio)
 
+        # Esperar a que el audio de respuesta termine antes de reanudar el pipeline
+        # player.play() es async en el nuevo AudioPlayer — damos margen al worker
+        time.sleep(0.15)
+        while player.is_playing():
+            time.sleep(0.05)
         ptt_active.clear()
         logger.info("PTT — pipeline reanudado")
 

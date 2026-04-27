@@ -138,6 +138,15 @@ class AudioPlayer:
             except Exception:
                 pass
 
+    def clear_queue(self) -> None:
+        while not self._task_queue.empty():
+            try:
+                self._task_queue.get_nowait()
+            except queue.Empty:
+                break
+        self._resume_stack.clear()
+        logger.info("Cola de audio vaciada")
+
     def _play_pygame(self, audio_bytes: bytes) -> None:
         buf = io.BytesIO(audio_bytes)
         pygame.mixer.music.load(buf, 'audio.mp3')
