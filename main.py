@@ -10,14 +10,19 @@ try:
 except ImportError:
     pygame = None
 
-from modules.config import GEMINI_API_KEY  # fuerza validación al arrancar
+from modules.config import (
+    GEMINI_API_KEY,
+    AUDIO_INTERRUPTIONS_ENABLED,
+    AUDIO_QUEUE_MAXSIZE,
+    AUDIO_DROP_EXPIRED,
+)
 from modules.input.camera import CameraCapture
 from modules.output.audio import AudioPlayer
 from modules.output.gemini_client import get_conversation_response
 from modules.output.tts_client import synthesize_speech
 from modules.input.stt_client import SpeechToTextClient
 from modules.input.ocr import extract_text
-from modules.processing import Processor
+from modules.processing.pipeline import Processor
 
 # Logging centralizado — nivel INFO por defecto
 logging.basicConfig(
@@ -37,16 +42,28 @@ def main():
 
     # --- Instanciación de módulos en orden de dependencia ---
     camera = CameraCapture()
-    player = AudioPlayer()
+    player = AudioPlayer(
+        max_queue=AUDIO_QUEUE_MAXSIZE,
+        interruptions_enabled=AUDIO_INTERRUPTIONS_ENABLED,
+        drop_expired=AUDIO_DROP_EXPIRED,
+    )
     processor = Processor()
 
     # --- Hilo consumidor de audio (output_queue del Processor) ---
     def consume_output():
-        # Usa el flag 'running' para terminar limpiamente en shutdown
         while running:
             try:
-                audio_bytes = processor.output_queue.get(timeout=0.5)
-                player.play(audio_bytes)
+                event = processor.output_queue.get(timeout=0.5)
+                if isinstance(event, dict):
+                    player.enqueue(
+                        event.get("audio", b""),
+                        priority=event.get("priority", 2),
+                        interrupt=event.get("interrupt", False),
+                        ttl_seconds=event.get("ttl_seconds", 5.0),
+                        resume_on_interrupt=event.get("resume_on_interrupt", False),
+                    )
+                else:
+                    player.play(event)
             except queue.Empty:
                 continue
 
@@ -56,11 +73,10 @@ def main():
     # --- Callback STT: responde preguntas del usuario con contexto visual actual ---
     def on_speech(transcript: str):
         logger.info(f"Pregunta del usuario: '{transcript}'")
-        # Leer last_description del Processor — contexto visual aproximado sin sincronización rígida
         description = get_conversation_response(transcript, processor.last_description)
         if description.strip():
             audio = synthesize_speech(description)
-            player.play(audio)
+            player.enqueue(audio, priority=1, interrupt=False, ttl_seconds=6.0)
 
     # --- Iniciar subsistemas ---
     camera.start()
@@ -73,11 +89,12 @@ def main():
     # --- Shutdown limpio con Ctrl+C ---
     def shutdown_handler(sig, frame):
         global running
-        logger.info("Señal de interrupción recibida — apagando sistema...")
+        logger.info("Senal de interrupcion recibida - apagando sistema...")
         running = False
         camera.stop()
         stt.stop()
         processor.stop()
+        player.shutdown()
         if pygame is not None:
             pygame.quit()
 

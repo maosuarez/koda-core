@@ -9,3 +9,13 @@ node_modules/
 .vscode/
 
 /creds
+
+# Entornos virtuales adicionales
+venv/
+env/
+
+# Cachés de tests
+.pytest_cache/
+
+# Configuración de IDEs
+.idea/

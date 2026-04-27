@@ -28,6 +28,14 @@ TTS_VOICE_NAME = get_env_variable("TTS_VOICE_NAME", "es-US-Neural2-B")
 CAMERA_INDEX = int(get_env_variable("CAMERA_INDEX", "0"))
 TESSERACT_CMD = get_env_variable("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
 
+HAZARD_DETECTION_ENABLED = get_env_variable("HAZARD_DETECTION_ENABLED", "true").lower() == "true"
+HAZARD_MODEL_NAME = get_env_variable("HAZARD_MODEL_NAME", "yolov8n.pt")
+HAZARD_COOLDOWN_SECONDS = float(get_env_variable("HAZARD_COOLDOWN_SECONDS", "6"))
+
+AUDIO_INTERRUPTIONS_ENABLED = get_env_variable("AUDIO_INTERRUPTIONS_ENABLED", "true").lower() == "true"
+AUDIO_QUEUE_MAXSIZE = int(get_env_variable("AUDIO_QUEUE_MAXSIZE", "12"))
+AUDIO_DROP_EXPIRED = get_env_variable("AUDIO_DROP_EXPIRED", "true").lower() == "true"
+
 # Validación de arranque — fallar rápido antes de conectar cualquier API
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY no está definida en .env — el sistema no puede arrancar")

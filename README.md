@@ -48,6 +48,13 @@ El output debe incluir `spa`.
 1. Clonar repositorio.
 2. `pip install -r requirements.txt`
 3. Copiar `.env.example` a `.env` y configurar las claves necesarias.
+4. (Opcional) Configurar parametros de peligro/audio en `.env`:
+   - `HAZARD_DETECTION_ENABLED=true`
+   - `HAZARD_MODEL_NAME=yolov8n.pt`
+   - `HAZARD_COOLDOWN_SECONDS=6`
+   - `AUDIO_INTERRUPTIONS_ENABLED=true`
+   - `AUDIO_QUEUE_MAXSIZE=12`
+   - `AUDIO_DROP_EXPIRED=true`
 
 ### 3. Ejecución
 ```bash
@@ -56,11 +63,12 @@ python main.py
 
 ## Estructura del proyecto
 - `main.py`: Orquestador principal.
-- `config.py`: Gestión de configuración.
-- `camera.py`: Módulo de visión.
-- `gemini_client.py`: Cliente de IA.
-- `tts_client.py`: Conversión texto-a-voz.
-- `stt_client.py`: Conversión voz-a-texto.
-- `ocr.py`: Extracción de texto.
-- `audio.py`: Reproducción de sonido.
-- `prompts.py`: Prompts de IA.
+- `modules/input/`: Captura de camara, OCR y STT.
+- `modules/processing/pipeline.py`: Pipeline principal de procesamiento.
+- `modules/processing/hazard_rules.py`: Reglas de criticidad para OCR/objetos.
+- `modules/processing/hazard_detector.py`: Detector de peligro con YOLO (opcional) + cooldown.
+- `modules/output/gemini_client.py`: Cliente de IA para descripcion y conversacion.
+- `modules/output/tts_client.py`: Conversion texto-a-voz.
+- `modules/output/audio.py`: Cola de audio priorizada, interrupcion y reanudacion.
+- `modules/prompts.py`: Prompts de IA.
+- `tests/`: Pruebas unitarias y guia de ejecucion (`tests/README.md`).
