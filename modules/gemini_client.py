@@ -1,3 +1,4 @@
+import os
 import time
 import threading
 import logging
@@ -5,13 +6,22 @@ import cv2
 import numpy as np
 from google import genai
 from google.genai import types
-from modules.config import GEMINI_API_KEY
+from modules.config import GEMINI_API_KEY, GEMINI_MODEL, USE_VERTEX, GCP_PROJECT, GCP_LOCATION
 from modules.prompts import SCENE_DESCRIPTION_PROMPT, CONVERSATION_PROMPT
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+if USE_VERTEX.lower() == "true":
+    client = genai.Client(
+        vertexai=True,
+        project=GCP_PROJECT,
+        location=GCP_LOCATION,
+    )
+    logger.info("Gemini via Vertex AI")
+else:
+    client = genai.Client(api_key=GEMINI_API_KEY)
+    logger.info("Gemini via API Key")
 _chat = None  # sesión persistente para modo conversacional
 _chat_lock = threading.Lock()  # evitar condiciones de carrera en la sesión de chat
 
@@ -31,7 +41,7 @@ def get_scene_description(image_frame: bytes, ocr_text: str = "") -> str:
         # Sin _chat_lock aquí: generate_content es stateless y no usa _chat
         # El lock solo protege la sesión persistente _chat usada por get_conversation_response
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model=GEMINI_MODEL,
             contents=[image_part, prompt],
         )
         elapsed = time.time() - start_time
@@ -53,7 +63,7 @@ def get_conversation_response(user_question: str, scene_description: str, ocr_te
         )
         with _chat_lock:
             if _chat is None:
-                _chat = client.chats.create(model="gemini-2.5-flash")
+                _chat = client.chats.create(model=GEMINI_MODEL)
             response = _chat.send_message(prompt)
         elapsed = time.time() - start_time
         logger.info(f"Latencia Gemini conversación: {elapsed:.4f} segundos")
