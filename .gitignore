@@ -22,3 +22,6 @@ env/
 
 # Modelos YOLO (descargados automáticamente, no versionan)
 yolov8n.pt
+
+# Videos pregrabados de demostración (archivos locales, no versionan)
+demo/
