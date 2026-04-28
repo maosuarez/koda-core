@@ -26,6 +26,7 @@ GOOGLE_APPLICATION_CREDENTIALS = get_env_variable("GOOGLE_APPLICATION_CREDENTIAL
 TTS_LANGUAGE_CODE = get_env_variable("TTS_LANGUAGE_CODE", "es-US")
 TTS_VOICE_NAME = get_env_variable("TTS_VOICE_NAME", "es-US-Neural2-B")
 CAMERA_INDEX = int(get_env_variable("CAMERA_INDEX", "0"))
+VIDEO_PATH = get_env_variable("VIDEO_PATH", "")  # ruta al video pregrabado; vacío = usar cámara en vivo
 TESSERACT_CMD = get_env_variable("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
 GEMINI_MODEL = get_env_variable("GEMINI_MODEL", "gemini-2.5-flash")
 USE_VERTEX = get_env_variable("USE_VERTEX", "false")
@@ -35,6 +36,7 @@ GCP_LOCATION = get_env_variable("GCP_LOCATION", "us-central1")
 HAZARD_DETECTION_ENABLED = get_env_variable("HAZARD_DETECTION_ENABLED", "true").lower() == "true"
 HAZARD_MODEL_NAME = get_env_variable("HAZARD_MODEL_NAME", "yolov8n.pt")
 HAZARD_COOLDOWN_SECONDS = float(get_env_variable("HAZARD_COOLDOWN_SECONDS", "6"))
+HAZARD_PROXIMITY_THRESHOLD = float(get_env_variable("HAZARD_PROXIMITY_THRESHOLD", "0.05"))
 
 AUDIO_INTERRUPTIONS_ENABLED = get_env_variable("AUDIO_INTERRUPTIONS_ENABLED", "true").lower() == "true"
 AUDIO_QUEUE_MAXSIZE = int(get_env_variable("AUDIO_QUEUE_MAXSIZE", "12"))

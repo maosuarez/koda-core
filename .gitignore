@@ -19,3 +19,6 @@ env/
 
 # Configuración de IDEs
 .idea/
+
+# Modelos YOLO (descargados automáticamente, no versionan)
+yolov8n.pt

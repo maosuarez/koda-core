@@ -207,6 +207,91 @@ def main():
     camera.start()
     processor.start()
 
+    # --- Hilo de display: ventana con video + subtítulos de Gemini ---
+    def _wrap_text(text: str, max_chars: int = 60) -> list[str]:
+        """Divide el texto en líneas de máximo max_chars caracteres respetando palabras."""
+        words = text.split()
+        lines = []
+        current = ""
+        for word in words:
+            if not current:
+                current = word
+            elif len(current) + 1 + len(word) <= max_chars:
+                current += " " + word
+            else:
+                lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
+    def display_loop():
+        global running
+        cv2.namedWindow("KODA Demo", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("KODA Demo", 960, 540)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.65
+        font_thickness = 1
+        line_height = 24
+        padding = 8
+
+        while running:
+            frame_bytes = camera.get_frame()
+            if frame_bytes is not None:
+                arr = np.frombuffer(frame_bytes, np.uint8)
+                img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+                if img is not None:
+                    # Dibujar bounding boxes de objetos detectados
+                    detections = processor.last_detections
+                    try:
+                        for det in detections:
+                            x1, y1, x2, y2 = det["xyxy"]
+                            color = (0, 0, 255) if det["is_close"] else (0, 255, 0)  # BGR: rojo=cercano, verde=lejano
+                            thickness = 3 if det["is_close"] else 2
+                            cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness)
+                            label_text = f"{det['label']} {det['conf']:.0%}"
+                            label_y = max(y1 - 6, 12)
+                            cv2.putText(img, label_text, (x1, label_y), font, 0.55, color, 1, cv2.LINE_AA)
+                    except Exception as e:
+                        pass
+
+                    # Contador de detecciones en esquina superior izquierda
+                    status_text = f"YOLO: {len(detections)} obj"
+                    cv2.putText(img, status_text, (10, 25), font, 0.6, (0, 255, 255), 2, cv2.LINE_AA)
+
+                    description = processor.last_description or ""
+                    if description:
+                        lines = _wrap_text(description, max_chars=60)
+                        overlay_h = line_height * len(lines) + padding * 2
+                        h, w = img.shape[:2]
+                        overlay_y = h - overlay_h
+
+                        # Rectángulo negro semitransparente como fondo del subtítulo
+                        overlay = img.copy()
+                        cv2.rectangle(overlay, (0, overlay_y), (w, h), (0, 0, 0), -1)
+                        cv2.addWeighted(overlay, 0.55, img, 0.45, 0, img)
+
+                        # Dibujar cada línea de texto en blanco
+                        for i, line in enumerate(lines):
+                            text_y = overlay_y + padding + line_height * i + line_height - 4
+                            cv2.putText(img, line, (padding, text_y), font, font_scale,
+                                        (255, 255, 255), font_thickness, cv2.LINE_AA)
+
+                    cv2.imshow("KODA Demo", img)
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                logger.info("Usuario cerró la ventana de display — apagando sistema")
+                running = False
+                break
+            time.sleep(1 / 15)
+
+        cv2.destroyAllWindows()
+
+    threading.Thread(target=display_loop, daemon=True).start()
+    logger.info("Hilo de display iniciado — ventana 'KODA Demo' activa")
+
     stt = SpeechToTextClient()
     stt.start(callback=on_stt_speech)
 

@@ -26,7 +26,7 @@ _chat = None  # sesión persistente para modo conversacional
 _chat_lock = threading.Lock()  # evitar condiciones de carrera en la sesión de chat
 
 
-def get_scene_description(image_frame: bytes, ocr_text: str = "") -> str:
+def get_scene_description(image_frame: bytes, ocr_text: str = "", recent_history: list[str] | None = None) -> str:
     start_time = time.time()
     try:
         # Re-encodar a JPEG calidad 75 para reducir payload hacia Gemini
@@ -36,7 +36,11 @@ def get_scene_description(image_frame: bytes, ocr_text: str = "") -> str:
             _, buffer = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 75])
             image_frame = buffer.tobytes()
 
-        prompt = SCENE_DESCRIPTION_PROMPT.format(ocr_text=ocr_text)
+        if recent_history:
+            history_text = "\n".join(f"- {h}" for h in recent_history[-3:])
+        else:
+            history_text = "(sin descripciones previas)"
+        prompt = SCENE_DESCRIPTION_PROMPT.format(ocr_text=ocr_text, recent_history=history_text)
         image_part = types.Part.from_bytes(data=image_frame, mime_type="image/jpeg")
         # Sin _chat_lock aquí: generate_content es stateless y no usa _chat
         # El lock solo protege la sesión persistente _chat usada por get_conversation_response

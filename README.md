@@ -44,6 +44,23 @@ tesseract --list-langs
 ```
 El output debe incluir `spa`.
 
+#### Modelo de detección de objetos: YOLO
+
+- YOLO (YOLOv8n) es el motor de detección visual de objetos del sistema. Es **crítico** para que la ventana de demo muestre los bordes rojo/verde sobre personas, vehículos y obstáculos.
+- Se instala automáticamente al hacer `pip install -r requirements.txt` (el paquete `ultralytics` ya está en requirements).
+- El modelo `yolov8n.pt` **se descarga automáticamente** la primera vez que se ejecuta `python main.py` (requiere conexión a internet, ~6 MB).
+- Para descargarlo manualmente antes de la demo (recomendado si hay conexión limitada):
+  ```python
+  from ultralytics import YOLO
+  YOLO("yolov8n.pt")  # descarga y guarda en el directorio actual
+  ```
+- Verificación: al arrancar el sistema, los logs deben mostrar:
+  ```
+  INFO:modules.processing.hazard_detector:Modelo YOLO cargado para deteccion de peligros
+  INFO:modules.processing.hazard_detector:YOLO listo — modelo: yolov8n.pt
+  ```
+- Si aparece `YOLO no disponible`, ejecutar: `pip install ultralytics`
+
 ### 2. Configuración
 1. Clonar repositorio.
 2. `pip install -r requirements.txt`
@@ -56,10 +73,39 @@ El output debe incluir `spa`.
    - `AUDIO_QUEUE_MAXSIZE=12`
    - `AUDIO_DROP_EXPIRED=true`
 
+### Modo Demo: video pregrabado
+
+- El sistema puede correr con un video MP4 en lugar de cámara en vivo — ideal para demos controladas.
+- Para activarlo, agregar esta variable en el archivo `.env`:
+  ```
+  VIDEO_PATH=demo/mi_video.mp4
+  ```
+  Acepta rutas relativas al directorio del proyecto o absolutas.
+- El video hace loop automático al terminar.
+- Para volver a cámara en vivo: comentar o eliminar la línea `VIDEO_PATH` del `.env`.
+- Al arrancar en modo demo, los logs confirman:
+  ```
+  INFO:modules.input.camera:Modo demo: usando video pregrabado 'demo/mi_video.mp4'
+  ```
+
 ### 3. Ejecución
 ```bash
 python main.py
 ```
+
+#### Ventana de demo
+
+- Al ejecutar `python main.py`, se abre automáticamente una ventana **"KODA Demo"** que muestra:
+  - El video o feed de cámara en tiempo real
+  - **Bordes ROJOS** sobre objetos cercanos (peligro inmediato)
+  - **Bordes VERDES** sobre objetos detectados a distancia segura
+  - Subtítulos con la descripción de Gemini en la parte inferior
+  - Contador `YOLO: N obj` en la esquina superior izquierda
+- Presionar `q` en la ventana cierra el sistema limpiamente.
+- El umbral de proximidad (cuándo un objeto pasa de verde a rojo) se configura en `.env`:
+  ```
+  HAZARD_PROXIMITY_THRESHOLD=0.05   # 5% del frame = objeto cercano → rojo
+  ```
 
 ## Estructura del proyecto
 - `main.py`: Orquestador principal.

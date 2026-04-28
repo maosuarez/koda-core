@@ -1,3 +1,4 @@
+import collections
 import logging
 import queue
 import threading
@@ -24,6 +25,8 @@ class Processor:
         self.running = True
         self.thread = None
         self.last_description: str = ""
+        self.last_detections: list = []
+        self._history: collections.deque = collections.deque(maxlen=3)
         self.hazard_detector = HazardDetector(
             enabled=HAZARD_DETECTION_ENABLED,
             model_name=HAZARD_MODEL_NAME,
@@ -78,12 +81,19 @@ class Processor:
                             ttl_seconds=hazard.ttl_seconds,
                             resume_on_interrupt=False,
                         )
+                    self.last_detections = self.hazard_detector.get_visual_detections(frame)
 
-                    description = get_scene_description(frame, ocr_text)
+                    description = get_scene_description(frame, ocr_text, list(self._history))
+
+                    if description.strip().upper() == "SKIP":
+                        logger.info("Gemini — sin cambios significativos, frame omitido")
+                        continue
+
                     if not description.strip():
                         logger.warning("Descripcion vacia de Gemini")
                         continue
 
+                    self._history.append(description)
                     self.last_description = description
                     audio = synthesize_speech(description)
 

@@ -2,11 +2,15 @@ import logging
 import time
 from typing import Optional
 
+import cv2
+import numpy as np
+
 try:
     from ultralytics import YOLO
 except Exception:
     YOLO = None
 
+from modules import config
 from modules.processing.hazard_rules import HazardEvent, classify_hazard
 
 logger = logging.getLogger(__name__)
@@ -23,10 +27,11 @@ class HazardDetector:
             try:
                 self._model = YOLO(model_name)
                 logger.info("Modelo YOLO cargado para deteccion de peligros")
+                logger.info(f"YOLO listo — modelo: {model_name}")
             except Exception as e:
                 logger.warning(f"No se pudo cargar YOLO ({model_name}): {e}")
         elif self.enabled:
-            logger.warning("ultralytics no disponible: solo se aplicaran reglas OCR")
+            logger.warning("YOLO no disponible — no habrá detección visual de objetos (instala ultralytics)")
 
     def _cooldown_ok(self, key: str) -> bool:
         now = time.time()
@@ -48,7 +53,11 @@ class HazardDetector:
             return None
 
         try:
-            results = self._model(frame, verbose=False)
+            nparr = np.frombuffer(frame, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img is None:
+                return None
+            results = self._model(img, verbose=False)
             if not results:
                 return None
             result = results[0]
@@ -64,4 +73,43 @@ class HazardDetector:
             logger.warning(f"Fallo en deteccion de objetos: {e}")
 
         return None
+
+    def get_visual_detections(self, frame: bytes) -> list[dict]:
+        """Retorna todos los objetos detectados con bboxes y clasificación de proximidad."""
+        if self._model is None or not frame:
+            return []
+        try:
+            nparr = np.frombuffer(frame, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            if img is None:
+                return []
+            results = self._model(img, verbose=False)
+            if not results:
+                return []
+            result = results[0]
+            h, w = result.orig_shape
+            frame_area = h * w
+            names = result.names
+            detections = []
+            for box in result.boxes:
+                conf = float(box.conf[0].item())
+                if conf < 0.25:
+                    continue
+                cls_id = int(box.cls[0].item())
+                label = names.get(cls_id, str(cls_id))
+                xyxy = box.xyxy[0].tolist()
+                x1, y1, x2, y2 = xyxy
+                bbox_area = (x2 - x1) * (y2 - y1)
+                is_close = (bbox_area / frame_area) >= config.HAZARD_PROXIMITY_THRESHOLD
+                detections.append({
+                    "xyxy": [int(x1), int(y1), int(x2), int(y2)],
+                    "label": label,
+                    "conf": conf,
+                    "is_close": is_close,
+                })
+            logger.info(f"Detecciones visuales: {len(detections)} objetos — {[d['label'] for d in detections]}")
+            return detections
+        except Exception as e:
+            logger.warning(f"Fallo en detecciones visuales: {e}")
+            return []
 
