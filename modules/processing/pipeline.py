@@ -27,6 +27,7 @@ class Processor:
         self.last_description: str = ""
         self.last_detections: list = []
         self._history: collections.deque = collections.deque(maxlen=3)
+        self._mentioned_objects: dict[str, float] = {}
         self.hazard_detector = HazardDetector(
             enabled=HAZARD_DETECTION_ENABLED,
             model_name=HAZARD_MODEL_NAME,
@@ -83,7 +84,15 @@ class Processor:
                         )
                     self.last_detections = self.hazard_detector.get_visual_detections(frame)
 
-                    description = get_scene_description(frame, ocr_text, list(self._history))
+                    now = time.time()
+                    new_objects = [
+                        d["label"] for d in self.last_detections
+                        if now - self._mentioned_objects.get(d["label"], 0.0) >= 15.0
+                    ]
+                    for label in new_objects:
+                        self._mentioned_objects[label] = now
+
+                    description = get_scene_description(frame, ocr_text, list(self._history), new_objects or None)
 
                     if description.strip().upper() == "SKIP":
                         logger.info("Gemini — sin cambios significativos, frame omitido")

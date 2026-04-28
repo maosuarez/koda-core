@@ -31,26 +31,5 @@ def classify_hazard(ocr_text: str, object_name: Optional[str], confidence: float
             interrupt=True,
         )
 
-    if object_name:
-        obj = object_name.lower()
-        if obj in {"car", "bus", "truck", "motorcycle", "bicycle"} and confidence >= 0.45:
-            return HazardEvent(
-                message="Atencion: vehiculo cercano detectado.",
-                priority=PRIORITY_HIGH,
-                source="object",
-                key=f"obj_{obj}",
-                ttl_seconds=3.0,
-                interrupt=True,
-            )
-        if obj in {"traffic light", "stop sign", "person"} and confidence >= 0.4:
-            return HazardEvent(
-                message="Atencion: elemento de transito importante al frente.",
-                priority=PRIORITY_HIGH,
-                source="object",
-                key=f"obj_{obj}",
-                ttl_seconds=3.0,
-                interrupt=True,
-            )
-
     return None
 
