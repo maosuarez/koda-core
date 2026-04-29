@@ -8,7 +8,6 @@
 
 [![KODA Demo](docs/demo_image.png)](https://youtu.be/lmg1QkQfOQk)
 
-**📅 Demo en vivo: 29 de abril de 2026**  
 **📍 Campus Universidad de La Sabana, Chía, Colombia**
 
 Para más detalles sobre la demo, visita [`docs/DEMO.md`](docs/DEMO.md).
