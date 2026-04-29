@@ -6,7 +6,7 @@
 
 ## Video de demostración
 
-[![KODA Demo Video](https://img.shields.io/badge/VIDEO-PROTOTIPO%202026-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/watch?v=PLACEHOLDER_VIDEO_ID)
+[![KODA Demo](docs/demo_image.png)](https://youtu.be/lmg1QkQfOQk)
 
 **📅 Demo en vivo: 29 de abril de 2026**  
 **📍 Campus Universidad de La Sabana, Chía, Colombia**
