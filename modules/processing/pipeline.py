@@ -25,7 +25,8 @@ class Processor:
         self.running = True
         self.thread = None
         self.last_description: str = ""
-        self.last_detections: list = []
+        self._last_detections: list = []
+        self._detections_lock = threading.Lock()
         self._history: collections.deque = collections.deque(maxlen=3)
         self._mentioned_objects: dict[str, float] = {}
         self.hazard_detector = HazardDetector(
@@ -33,6 +34,11 @@ class Processor:
             model_name=HAZARD_MODEL_NAME,
             cooldown_seconds=HAZARD_COOLDOWN_SECONDS,
         )
+
+    @property
+    def last_detections(self) -> list:
+        with self._detections_lock:
+            return list(self._last_detections)
 
     def start(self):
         self.thread = threading.Thread(target=self._run, daemon=True)
@@ -72,7 +78,9 @@ class Processor:
                     start_e2e = data["t0"]
                     ocr_text = data.get("ocr_text", "")
 
-                    hazard = self.hazard_detector.detect(frame, ocr_text)
+                    hazard, detections = self.hazard_detector.detect_with_visuals(frame, ocr_text)
+                    with self._detections_lock:
+                        self._last_detections = detections
                     if hazard:
                         hazard_audio = synthesize_speech(hazard.message)
                         self._emit_audio_event(
@@ -82,11 +90,10 @@ class Processor:
                             ttl_seconds=hazard.ttl_seconds,
                             resume_on_interrupt=False,
                         )
-                    self.last_detections = self.hazard_detector.get_visual_detections(frame)
 
                     now = time.time()
                     new_objects = [
-                        d["label"] for d in self.last_detections
+                        d["label"] for d in detections
                         if now - self._mentioned_objects.get(d["label"], 0.0) >= 15.0
                     ]
                     for label in new_objects:

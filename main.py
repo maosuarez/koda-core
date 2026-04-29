@@ -1,3 +1,4 @@
+import collections
 import queue
 import signal
 import threading
@@ -18,7 +19,9 @@ from modules.config import (
     AUDIO_INTERRUPTIONS_ENABLED,
     AUDIO_QUEUE_MAXSIZE,
     AUDIO_DROP_EXPIRED,
-    FRAME_SIMILARITY_THRESHOLD,
+    FRAME_SIMILARITY_THRESHOLD_STILL,
+    FRAME_SIMILARITY_THRESHOLD_MOVING,
+    FRAME_MOTION_DETECT_THRESHOLD,
 )
 from modules.input.camera import CameraCapture
 from modules.output.audio import AudioPlayer
@@ -41,22 +44,21 @@ logger = logging.getLogger("Main")
 running = True
 
 
-def _is_similar_frame(frame_a: bytes, frame_b: bytes) -> bool:
-    """Retorna True si los dos frames son visualmente casi idénticos."""
+def _frame_similarity_score(frame_a: bytes, frame_b: bytes) -> float:
+    """Retorna score de similitud 0.0-1.0 entre dos frames JPEG. 1.0 = idénticos."""
     try:
         arr_a = np.frombuffer(frame_a, np.uint8)
         arr_b = np.frombuffer(frame_b, np.uint8)
         img_a = cv2.imdecode(arr_a, cv2.IMREAD_GRAYSCALE)
         img_b = cv2.imdecode(arr_b, cv2.IMREAD_GRAYSCALE)
         if img_a is None or img_b is None:
-            return False
+            return 0.0
         img_a = cv2.resize(img_a, (64, 64))
         img_b = cv2.resize(img_b, (64, 64))
         diff = cv2.absdiff(img_a, img_b)
-        similarity = 1.0 - (diff.mean() / 255.0)
-        return similarity >= FRAME_SIMILARITY_THRESHOLD
+        return 1.0 - (diff.mean() / 255.0)
     except Exception:
-        return False
+        return 0.0
 
 
 def main():
@@ -83,6 +85,7 @@ def main():
         "steps": [],
         "index": 0,
         "destination": "",
+        "last_announced": 0.0,
     }
 
     # --- Hilo consumidor de audio (output_queue del Processor) ---
@@ -122,14 +125,13 @@ def main():
         if step:
             audio = synthesize_speech(step)
             player.play(audio)
+            nav_state["last_announced"] = time.time()
 
     # Hilo que repite el paso actual cada 15s mientras navegación está activa
     def nav_announcer():
-        last_t = 0.0
         while running:
-            if nav_state["active"] and not ptt_active.is_set() and (time.time() - last_t) >= 15:
+            if nav_state["active"] and not ptt_active.is_set() and (time.time() - nav_state["last_announced"]) >= 15:
                 announce_nav_step()
-                last_t = time.time()
             time.sleep(1)
 
     threading.Thread(target=nav_announcer, daemon=True).start()
@@ -322,6 +324,7 @@ def main():
 
     # --- Loop principal a ~1 FPS: captura frame → OCR → cola del Processor ---
     prev_frame: bytes | None = None
+    _similarity_scores: collections.deque = collections.deque(maxlen=5)
     while running:
         # Pausar captura mientras PTT está activo — no enviar frames ni descripciones
         if ptt_active.is_set():
@@ -329,11 +332,16 @@ def main():
             continue
         frame = camera.get_frame()
         if frame is not None:
-            # Descartar si la escena no cambió respecto al frame anterior
-            if prev_frame is not None and _is_similar_frame(prev_frame, frame):
-                logger.debug("Frame descartado — escena sin cambios significativos")
-                time.sleep(1.0)
-                continue
+            # Descartar si la escena no cambió — umbral adaptivo: alto cuando quieto, bajo cuando en movimiento
+            if prev_frame is not None:
+                score = _frame_similarity_score(prev_frame, frame)
+                _similarity_scores.append(score)
+                avg = sum(_similarity_scores) / len(_similarity_scores)
+                threshold = FRAME_SIMILARITY_THRESHOLD_STILL if avg >= FRAME_MOTION_DETECT_THRESHOLD else FRAME_SIMILARITY_THRESHOLD_MOVING
+                if score >= threshold:
+                    logger.debug(f"Frame descartado — similitud {score:.3f} >= umbral {threshold:.2f} (avg={avg:.3f})")
+                    time.sleep(1.0)
+                    continue
             prev_frame = frame
             try:
                 ocr_text = extract_text(frame)
