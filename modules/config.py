@@ -42,8 +42,10 @@ AUDIO_INTERRUPTIONS_ENABLED = get_env_variable("AUDIO_INTERRUPTIONS_ENABLED", "t
 AUDIO_QUEUE_MAXSIZE = int(get_env_variable("AUDIO_QUEUE_MAXSIZE", "12"))
 AUDIO_DROP_EXPIRED = get_env_variable("AUDIO_DROP_EXPIRED", "true").lower() == "true"
 
-# Descarte de frames similares — 0.97 = descarta si el 97% de píxeles no cambió
-FRAME_SIMILARITY_THRESHOLD = float(get_env_variable("FRAME_SIMILARITY_THRESHOLD", "0.97"))
+# Descarte de frames similares — umbrales adaptativos según movimiento detectado
+FRAME_SIMILARITY_THRESHOLD_STILL = float(get_env_variable("FRAME_SIMILARITY_THRESHOLD_STILL", "0.97"))
+FRAME_SIMILARITY_THRESHOLD_MOVING = float(get_env_variable("FRAME_SIMILARITY_THRESHOLD_MOVING", "0.80"))
+FRAME_MOTION_DETECT_THRESHOLD = float(get_env_variable("FRAME_MOTION_DETECT_THRESHOLD", "0.93"))
 
 # Validación de arranque — fallar rápido antes de conectar cualquier API
 if USE_VERTEX.lower() != "true" and not GEMINI_API_KEY:
