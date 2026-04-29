@@ -1,27 +1,52 @@
+# ── Secretos y entorno ────────────────────────────────────────────────────────
 .env
-.venv
 .env.*
 !.env.example
-keys/
-__pycache__/
-*.pyc
-node_modules/
-.vscode/
-
 /creds
 
-# Entornos virtuales adicionales
+# ── Entornos virtuales Python ─────────────────────────────────────────────────
+.venv
 venv/
 env/
 
-# Cachés de tests
+# ── Cachés Python ─────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Tests ─────────────────────────────────────────────────────────────────────
 .pytest_cache/
 
-# Configuración de IDEs
+# ── IDEs y editores ───────────────────────────────────────────────────────────
+.vscode/
 .idea/
 
-# Modelos YOLO (descargados automáticamente, no versionan)
-yolov8n.pt
+# ── Herramientas de IA (configs de máquina, no del proyecto) ──────────────────
+.claude
+.cursorrules
+.windsurfrules
+.kiro
+AGENTS.md
+GEMINI.md
 
-# Videos pregrabados de demostración (archivos locales, no versionan)
+# ── MCP y OpenCode ────────────────────────────────────────────────────────────
+.mcp.json
+.opencode/
+.opencode.json
+
+# ── Knowledge graph (generado automáticamente) ────────────────────────────────
+.code-review-graph/
+
+# ── Modelos ML (descargados automáticamente) ──────────────────────────────────
+*.pt
+*.onnx
+
+# ── Videos de demo (archivos locales pesados) ─────────────────────────────────
 demo/
+
+# ── Node.js ───────────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+keys/
