@@ -6,7 +6,7 @@
 
 ## Video de demostración
 
-[![KODA Demo](docs/demo_image.png)](https://youtu.be/lmg1QkQfOQk)
+[![KODA Demo](docs/demo_image.png?raw=true)](https://youtu.be/lmg1QkQfOQk)
 
 **📍 Campus Universidad de La Sabana, Chía, Colombia**
 
