@@ -24,7 +24,8 @@ class Processor:
         self.output_queue = queue.Queue(maxsize=8)
         self.running = True
         self.thread = None
-        self.last_description: str = ""
+        self._last_description: str = ""
+        self._description_lock = threading.Lock()
         self._last_detections: list = []
         self._detections_lock = threading.Lock()
         self._history: collections.deque = collections.deque(maxlen=3)
@@ -34,6 +35,16 @@ class Processor:
             model_name=HAZARD_MODEL_NAME,
             cooldown_seconds=HAZARD_COOLDOWN_SECONDS,
         )
+
+    @property
+    def last_description(self) -> str:
+        with self._description_lock:
+            return self._last_description
+
+    @last_description.setter
+    def last_description(self, value: str) -> None:
+        with self._description_lock:
+            self._last_description = value
 
     @property
     def last_detections(self) -> list:
